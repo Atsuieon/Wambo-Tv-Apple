@@ -262,6 +262,11 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   that runs only while that screen is open, on a random token path (404 for anything else), and only takes photos in:
   each one goes to `Photos.privateInbox` under a hidden name until whole, and the home screen imports it. It is this
   fork's one exception to "nothing listens to the network".
+  My Photos is `PhotosActivity` (Home Settings > My Photos > OK): thumbnails, and for each photo whether it shows on
+  the home screen and in the screensaver (`Prefs.photosOff`, sets of file names kept off each; new photos show on
+  both: `Photos.files(c, where)`, `onHome`, `onSaver`), plus the background's blur (`Prefs.photoBlur`, 0 = sharp at
+  the screen's size, then `Backdrop.make(..., blur)` at half size with a growing box blur) and how often it changes
+  (`Prefs.photoInterval`).
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.

@@ -146,6 +146,39 @@ final class Prefs {
     static boolean photos() { return sp().getBoolean("photos", true); }
     static void setPhotos(boolean on) { put("photos", on); }
 
+    /** How blurred your photo is behind the home screen, in percent (0 = sharp; My Photos). */
+    static final int[] BLURS = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    static int photoBlur() { return sp().getInt("photoBlur", 30); }
+    static void setPhotoBlur(int percent) { sp().edit().putInt("photoBlur", percent).apply(); version++; }
+
+    /** Minutes between the home screen's photos, when more than one is on it. */
+    static final int[] INTERVALS = {5, 15, 30, 60, 180, 1440};
+    static int photoInterval() { return sp().getInt("photoInterval", 60); }
+    static void setPhotoInterval(int minutes) { sp().edit().putInt("photoInterval", minutes).apply(); version++; }
+
+    /** Where a photo shows: on the home screen ("home") or in the screensaver ("saver"). */
+    static final String PHOTO_HOME = "home", PHOTO_SAVER = "saver";
+
+    /** The photos (by file name) kept off the home screen or the screensaver; new ones show on both. */
+    static java.util.Set<String> photosOff(String where) {
+        return new java.util.HashSet<>(sp().getStringSet("photosOff-" + where, java.util.Collections.emptySet()));
+    }
+
+    static void setPhotoOff(String where, String name, boolean off) {
+        java.util.Set<String> set = photosOff(where);
+        if (off) set.add(name); else set.remove(name);
+        sp().edit().putStringSet("photosOff-" + where, set).apply();
+        version++;
+    }
+
+    /** Only this photo on the home screen: every other one goes off it. */
+    static void setOnlyHomePhoto(java.util.List<String> all, String name) {
+        java.util.Set<String> set = new java.util.HashSet<>(all);
+        set.remove(name);
+        sp().edit().putStringSet("photosOff-" + PHOTO_HOME, set).apply();
+        version++;
+    }
+
     static boolean coin(int i) { return sp().getBoolean("coin" + i, true); }
     static void setCoin(int i, boolean on) { put("coin" + i, on); }
 

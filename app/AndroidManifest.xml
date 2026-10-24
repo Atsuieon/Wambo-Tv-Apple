@@ -86,6 +86,17 @@
             </intent-filter>
         </activity>
 
+        <!-- My Photos: thumbnails, where each one shows, the background's blur (Home Settings > My Photos). -->
+        <activity
+            android:name=".PhotosActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="Free My TV"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Home" />
+
         <!-- Photos from a phone over Wi-Fi (the home screen's top button): a web server only while it's on screen. -->
         <activity
             android:name=".PhoneUploadActivity"

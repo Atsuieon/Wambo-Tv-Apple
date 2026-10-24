@@ -823,24 +823,6 @@ public class SettingsActivity extends Activity {
             dialog.show();
         }
 
-        // MARK: - My Photos (sent from a computer: tools/photos.py)
-
-        /** OK on My Photos: asks, then deletes them all. */
-        private void askRemovePhotos() {
-            int n = Photos.files(getContext()).size();
-            if (n == 0) return;
-            AlertDialog dialog = new AlertDialog.Builder(activity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-                    .setTitle(Ui.plural("plural|one:Remove {n} photo?|other:Remove {n} photos?", n))
-                    .setPositiveButton(Ui.tr("Remove"), (d, which) -> {
-                        Photos.removeAll(getContext());
-                        invalidate();
-                        spoken.focusMoved();
-                    })
-                    .setNegativeButton(Ui.tr("Cancel"), null)
-                    .show();
-            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).requestFocus();   // one stray OK keeps them
-        }
-
         private void searchCity(String name) {
             if (name.trim().isEmpty()) return;
             cityStatus = Ui.tr("Searching…");
@@ -1051,8 +1033,8 @@ public class SettingsActivity extends Activity {
             // A list longer than the screen says where we are in it, as the app picker does.
             String where = rows < labels.length ? (from + focus + 1) + " / " + labels.length + "  ·  " : "";
             c.drawText(where + (!keys && from + focus == PHOTOS_ROW ? (Photos.files(getContext()).isEmpty()
-                    ? Ui.tr("Send them from a computer: see “Your own photos” in the README.")
-                    : Ui.tr("OK removes them; the arrows turn them on or off."))
+                    ? Ui.tr("OK opens them: send photos from your phone there.")
+                    : Ui.tr("OK opens them; the arrows turn them all on or off."))
                     : Ui.tr("OK or the arrows change the value.")), LIST_X * k + 30 * k, hy, hint);
             if (keys) {
                 c.drawText(RemoteKeys.VESTEL ? Ui.tr("YouTube, Prime Video and Google Play: the TV itself controls those buttons.")
@@ -1105,7 +1087,7 @@ public class SettingsActivity extends Activity {
                 askCity();
                 return;
             } else if (screen == HOME_SETTINGS && pickScroll + focus == PHOTOS_ROW) {
-                askRemovePhotos();
+                activity.startActivity(new Intent(activity, PhotosActivity.class));   // thumbnails, where each shows
                 return;
             } else if (screen == HOME_SETTINGS) {
                 adjust(1);

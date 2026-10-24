@@ -24,6 +24,10 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
   wybierz zdjęcia i gotowe: pojawią się w tle ekranu i w wygaszaczu. Odbieranie działa tylko, gdy ten ekran jest
   otwarty na projektorze, a adres jest za każdym razem inny.
 - Pogrubiona godzina i dźwięk nawigacji „miękka kropla”.
+- **Moje zdjęcia** (Free My TV → Ustawienia ekranu → Moje zdjęcia → OK): miniatury wszystkich zdjęć. Przy każdym
+  widać, czy jest na ekranie głównym i w wygaszaczu, a OK otwiera je w dużym podglądzie, gdzie włączysz je osobno
+  tu i tam, ustawisz jako jedyne tło albo usuniesz. Na górze: rozmycie tła (0–100%), jak często zmienia się tło
+  i przycisk do wysyłania z telefonu.
 
 ## Instalacja (ok. 15 minut)
 

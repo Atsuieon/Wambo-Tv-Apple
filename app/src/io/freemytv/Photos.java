@@ -95,16 +95,29 @@ final class Photos {
         return listed;
     }
 
-    /** On in Home Settings and something imported. */
-    static boolean on(Context c) {
-        return Prefs.photos() && !files(c).isEmpty();
+    /** The photos for the home screen ("home") or the screensaver ("saver"): all but the ones turned off there. */
+    static List<File> files(Context c, String where) {
+        java.util.Set<String> off = Prefs.photosOff(where);
+        List<File> out = new ArrayList<>();
+        for (File f : files(c)) if (!off.contains(f.getName())) out.add(f);
+        return out;
     }
 
-    /** For the screensaver: the photos as picks (no title, no caption). */
+    /** On in Home Settings and something imported for the home screen. */
+    static boolean onHome(Context c) {
+        return Prefs.photos() && !files(c, Prefs.PHOTO_HOME).isEmpty();
+    }
+
+    /** On in Home Settings and something imported for the screensaver. */
+    static boolean onSaver(Context c) {
+        return Prefs.photos() && !files(c, Prefs.PHOTO_SAVER).isEmpty();
+    }
+
+    /** For the screensaver: its photos as picks (no title, no caption). */
     static List<Recs.Pick> picks(Context c) {
         List<Recs.Pick> out = new ArrayList<>();
-        if (!on(c)) return out;
-        List<File> list = files(c);
+        if (!onSaver(c)) return out;
+        List<File> list = files(c, Prefs.PHOTO_SAVER);
         for (int i = 0; i < list.size(); i++) {
             Recs.Pick p = new Recs.Pick();
             p.kind = "photo";
@@ -119,30 +132,34 @@ final class Photos {
 
     private static final ExecutorService worker = Executors.newSingleThreadExecutor();
     private static final Handler main = new Handler(Looper.getMainLooper());
-    private static File built, building;
+    private static String built, building;   // file name and blur ("name|30")
     private static Backdrop backdrop;
 
     /**
-     * This hour's photo, ready to draw as the home screen's background, or null (off, or the first one still being
-     * built). When the hour changes, the previous one stays until the new one is ready; then `ready` runs.
+     * The photo for now (one of the home screen's, a new one every Prefs.photoInterval minutes), ready to draw as the
+     * home screen's background at Prefs.photoBlur, or null (off, or the first one still being built). When it
+     * changes, the previous one stays until the new one is ready; then `ready` runs.
      */
     static synchronized Backdrop backdrop(Context c, Runnable ready) {
-        if (!on(c)) {
+        if (!onHome(c)) {
             backdrop = null;
             built = null;
             return null;
         }
-        List<File> list = files(c);
-        File want = list.get((int) ((System.currentTimeMillis() / 3_600_000L) % list.size()));
+        List<File> list = files(c, Prefs.PHOTO_HOME);
+        long every = Math.max(1, Prefs.photoInterval()) * 60_000L;
+        File file = list.get((int) ((System.currentTimeMillis() / every) % list.size()));
+        int blur = Prefs.photoBlur();
+        String want = file.getName() + "|" + blur;
         if (!want.equals(built) && !want.equals(building)) {
             building = want;
             worker.execute(() -> {
                 Backdrop b = null;
                 try {
-                    Bitmap src = BitmapFactory.decodeFile(want.getPath());
-                    if (src != null) b = Backdrop.make(src, true, true);
+                    Bitmap src = BitmapFactory.decodeFile(file.getPath());
+                    if (src != null) b = Backdrop.make(src, true, true, blur);
                 } catch (RuntimeException | OutOfMemoryError e) {
-                    AppLog.w("photos: background from " + want.getName() + ": " + e.getMessage());
+                    AppLog.w("photos: background from " + file.getName() + ": " + e.getMessage());
                 }
                 synchronized (Photos.class) {
                     building = null;
@@ -267,6 +284,18 @@ final class Photos {
         AppLog.w("photos: imported " + count + ", " + (have + count) + " in all");
         if (count > 0) Prefs.setPhotos(true);   // new photos show, even if they had been turned off
         return count;
+    }
+
+    /** Deletes one imported photo (My Photos). */
+    static synchronized void remove(Context c, File f) {
+        f.delete();
+        Prefs.setPhotoOff(Prefs.PHOTO_HOME, f.getName(), false);
+        Prefs.setPhotoOff(Prefs.PHOTO_SAVER, f.getName(), false);
+        listedStamp = -1;
+        if (built != null && built.startsWith(f.getName() + "|")) {
+            backdrop = null;
+            built = null;
+        }
     }
 
     /** Deletes the imported photos and whatever is still waiting, half-sent ones included. */
