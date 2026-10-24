@@ -1,6 +1,7 @@
 # Builds FreeMyTV-Wanbo.apk on every push and puts it on the "najnowsza" (latest) release, ready to download.
-# Optional repository secrets (Settings → Secrets and variables → Actions):
-#   TMDB_KEY      your free TMDB key, for the trending picks (the repository is private, so the APK stays private)
+# The repository is public, so the release APK is too: no TMDB key goes into it (anyone could take it out of the APK).
+# For the trending picks, build it yourself with your key in config.properties (README.md).
+# Optional repository secret (Settings → Secrets and variables → Actions):
 #   KEYSTORE_B64  base64 of freemytv.keystore: without it every build has a new key, and an update must be
 #                 installed after switching to Original and uninstalling the old app
 name: APK
@@ -33,13 +34,9 @@ jobs:
           echo "ANDROID_HOME=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
       - name: Settings and signing key
         env:
-          TMDB_KEY: ${{ secrets.TMDB_KEY }}
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
         run: |
           cp config.example.properties config.properties
-          if [ -n "$TMDB_KEY" ]; then
-            printf '\ntmdb_key=%s\n' "$TMDB_KEY" >> config.properties
-          fi
           if [ -n "$KEYSTORE_B64" ]; then
             printf '%s' "$KEYSTORE_B64" | base64 -d > freemytv.keystore
           else

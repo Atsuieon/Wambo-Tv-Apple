@@ -21,18 +21,23 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
 
 ## Instalacja (ok. 15 minut)
 
-### 1. Pobierz plik APK
+### 1–2. Pobierz i zainstaluj na projektorze (bez komputera)
 
-Każda zmiana w tym repozytorium sama buduje gotowy plik. Na komputerze (zalogowany na GitHubie) otwórz
-**Releases → „Free My TV dla Wanbo” → `FreeMyTV-Wanbo.apk`** i pobierz go. Repozytorium jest prywatne, więc
-projektor nie pobierze go sam: skopiuj plik na **pendrive**.
+Każda zmiana w tym repozytorium sama buduje gotowy plik `FreeMyTV-Wanbo.apk` (zakładka **Releases**).
 
-### 2. Zainstaluj na projektorze
+1. Na projektorze zainstaluj ze Sklepu Play aplikację **Downloader** (autor: AFTVnews).
+2. Otwórz ją i wpisz pilotem adres:
 
-1. Na projektorze zainstaluj ze Sklepu Play menedżer plików, np. **File Commander** albo **X-plore**.
-2. Włóż pendrive do projektora, otwórz w menedżerze plik `FreeMyTV-Wanbo.apk` i wybierz **Zainstaluj**.
-3. Gdy projektor zapyta o instalowanie z nieznanych źródeł, zezwól na to menedżerowi plików.
+   ```
+   https://github.com/Atsuieon/Wambo-Tv-Apple/releases/latest/download/FreeMyTV-Wanbo.apk
+   ```
+
+3. Po pobraniu wybierz **Zainstaluj**. Gdy projektor zapyta o instalowanie z nieznanych źródeł, zezwól na to
+   aplikacji Downloader.
 4. Jeśli pojawi się Google Play Protect („aplikacja zablokowana”), wybierz **Więcej szczegółów → Zainstaluj mimo to**.
+
+Wolisz pendrive? Pobierz ten sam plik na komputerze, skopiuj go na pendrive i otwórz na projektorze w menedżerze
+plików (np. **File Commander** albo **X-plore** ze Sklepu Play).
 
 ### 3. Włącz tryb programisty (potrzebny do przełączenia ekranu)
 
@@ -61,9 +66,11 @@ Chcesz odinstalować? Najpierw przełącz na **Fabryczny**, potem Ustawienia →
 
 ## Opcjonalnie
 
-- **Polecane filmy i seriale:** załóż darmowy klucz na [themoviedb.org](https://www.themoviedb.org/settings/api)
-  i dodaj go w repozytorium jako sekret `TMDB_KEY` (Settings → Secrets and variables → Actions). Nie wklejaj go
-  na czacie ani w plikach.
+- **Polecane filmy i seriale:** potrzebny jest darmowy klucz z [themoviedb.org](https://www.themoviedb.org/settings/api).
+  Repozytorium jest publiczne, więc gotowy plik z Releases go nie ma (każdy mógłby go wyciągnąć). Żeby mieć
+  polecane, zbuduj własną wersję na komputerze: wpisz klucz po `tmdb_key=` w `config.properties` i uruchom
+  `./build.sh` (szczegóły w [README-free-my-tv.md](README-free-my-tv.md)). Nie wklejaj klucza na czacie ani do repozytorium.
+  Bez klucza wszystko inne działa.
 - **Aktualizacje bez odinstalowywania:** dodaj sekret `KEYSTORE_B64` z kluczem podpisu (szczegóły na górze
   `.github/workflows/apk.yml`). Bez niego każda nowa wersja ma inny podpis: przed aktualizacją przełącz na
   **Fabryczny** i odinstaluj starą wersję.

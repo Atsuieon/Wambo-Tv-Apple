@@ -252,8 +252,8 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   keystone, focus, trapez or imaging. `HomeApps.wanboHome` puts the maker's home screen in the drawer, for the
   projection menus. No Wanbo package names have been read from a real device yet: `DEBLOAT` has no Wanbo entries
   and `RemoteKeys` doesn't know its remote. Read the device first (see "Adapting it to another TV").
-  `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (secrets
-  `TMDB_KEY` and `KEYSTORE_B64`, both optional).
+  `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
+  is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
 - LG and Samsung (`web/`): plain ES5 JavaScript and CSS without variables, grid or backdrop-filter, since older TVs
   (webOS 3 and 4, Tizen 3) run a Chromium from 2015 to 2017; only transform and opacity animate. `web/tv.js` is the
