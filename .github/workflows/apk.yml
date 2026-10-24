@@ -1,0 +1,65 @@
+# Builds FreeMyTV-Wanbo.apk on every push and puts it on the "najnowsza" (latest) release, ready to download.
+# Optional repository secrets (Settings → Secrets and variables → Actions):
+#   TMDB_KEY      your free TMDB key, for the trending picks (the repository is private, so the APK stays private)
+#   KEYSTORE_B64  base64 of freemytv.keystore: without it every build has a new key, and an update must be
+#                 installed after switching to Original and uninstalling the old app
+name: APK
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK (build-tools 34, android-34)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$RUNNER_TEMP/sdk" \
+            "build-tools;34.0.0" "platforms;android-34" > /dev/null
+          echo "ANDROID_HOME=$RUNNER_TEMP/sdk" >> "$GITHUB_ENV"
+      - name: Settings and signing key
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          cp config.example.properties config.properties
+          if [ -n "$TMDB_KEY" ]; then
+            printf '\ntmdb_key=%s\n' "$TMDB_KEY" >> config.properties
+          fi
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > freemytv.keystore
+          else
+            echo "::warning::No KEYSTORE_B64 secret: this build is signed with a new key (see the top of apk.yml)."
+          fi
+      - run: ./build.sh
+      - run: mv FreeMyTV.apk FreeMyTV-Wanbo.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FreeMyTV-Wanbo
+          path: FreeMyTV-Wanbo.apk
+      - name: Release "najnowsza"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}. Download FreeMyTV-Wanbo.apk and see README.md."
+          if gh release view najnowsza > /dev/null 2>&1; then
+            git push -f origin "HEAD:refs/tags/najnowsza"
+            gh release edit najnowsza --notes "$notes"
+          else
+            gh release create najnowsza --target "$GITHUB_SHA" --title "Free My TV dla Wanbo" --notes "$notes"
+          fi
+          gh release upload najnowsza FreeMyTV-Wanbo.apk --clobber
