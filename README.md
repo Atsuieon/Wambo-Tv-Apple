@@ -19,7 +19,11 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
 - **Skrót do menu projektora** w dolnej szufladzie: otwiera fabryczny ekran Wanbo, gdzie są ustawienia projekcji.
 - **Wersja z Google TV** ma w środku wbudowaną przystawkę Skyworth „4K Google TV Stick” (Android 14). Jej aplikacje
   systemowe (połączenie z projektorem, aktualizacje, parowanie pilota, przyciski pilota) są na liście chronionych.
-- Ustawienia domyślne dla Polski: Warszawa, stopnie Celsjusza, złotówki, język polski.
+- Ustawienia domyślne: pogoda ze Szczecina, stopnie Celsjusza, złotówki, język polski.
+- **Zdjęcia z telefonu:** przycisk u góry ekranu pokazuje kod QR. Zeskanuj go telefonem (w tej samej sieci Wi-Fi),
+  wybierz zdjęcia i gotowe: pojawią się w tle ekranu i w wygaszaczu. Odbieranie działa tylko, gdy ten ekran jest
+  otwarty na projektorze, a adres jest za każdym razem inny.
+- Pogrubiona godzina i dźwięk nawigacji „miękka kropla”.
 
 ## Instalacja (ok. 15 minut)
 
@@ -73,9 +77,9 @@ Chcesz odinstalować? Najpierw przełącz na **Fabryczny**, potem Ustawienia →
   polecane, zbuduj własną wersję na komputerze: wpisz klucz po `tmdb_key=` w `config.properties` i uruchom
   `./build.sh` (szczegóły w [README-free-my-tv.md](README-free-my-tv.md)). Nie wklejaj klucza na czacie ani do repozytorium.
   Bez klucza wszystko inne działa.
-- **Aktualizacje bez odinstalowywania:** dodaj sekret `KEYSTORE_B64` z kluczem podpisu (szczegóły na górze
-  `.github/workflows/apk.yml`). Bez niego każda nowa wersja ma inny podpis: przed aktualizacją przełącz na
-  **Fabryczny** i odinstaluj starą wersję.
+- **Aktualizacje bez odinstalowywania:** dodaj sekret `KEYSTORE_B64` z kluczem podpisu (Settings → Secrets and
+  variables → Actions → New repository secret). Bez niego każda nowa wersja ma inny podpis: przed aktualizacją
+  przełącz na **Fabryczny** i odinstaluj starą wersję. Z nim nową wersję instalujesz po prostu na starą.
 - **Twoje miasto:** zmień `latitude`, `longitude` i `city` w `config.example.properties` albo w aplikacji
   (Ustawienia ekranu).
 

@@ -255,6 +255,13 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   screen is Google TV's launcherx (off as on any TV), and its system pieces are in `PROTECTED`. It ships no promo apps
   of its own, so `DEBLOAT` has no entries for it; `RemoteKeys` doesn't know its remote yet. As on Chromecast, port
   5555 closes at every restart (pair over Wireless debugging, then `adb tcpip 5555`).
+  The owner's picks: weather from Szczecin (`config.example.properties`), the clock in Inter Semibold
+  (`Ui.displaySemibold`, home screen and screensaver) and a soft water drop for `Click` (rising pitch, synthesized).
+  "Photos from your phone" (`HomeApps.TOP_PHOTOS`, a top button by default): `PhoneUploadActivity` shows a QR code
+  (`Qr`, a small encoder, byte mode, level M, versions 1 to 6) for `PhoneUpload`, a web server on port 8642 (to 8652)
+  that runs only while that screen is open, on a random token path (404 for anything else), and only takes photos in:
+  each one goes to `Photos.privateInbox` under a hidden name until whole, and the home screen imports it. It is this
+  fork's one exception to "nothing listens to the network".
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
