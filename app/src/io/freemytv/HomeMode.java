@@ -166,6 +166,13 @@ final class HomeMode {
         "com.onn.bluetoothconnect", "com.onn.btpairoverlay", "com.onn.updatenotification", "com.gretzky.GlobalKey",
         "com.gretzky.hwinfo", "com.droidlogic", "com.droidlogic.tv.settings", "com.droidlogic.mictoggle",
         "com.droidlogic.launcher.provider", "com.droidlogic.android.tv.connecteddevices",
+        // Wanbo Mozart 1 Pro, Google TV version (Android 14 tested): a built-in SkyworthDigital "4K Google TV Stick"
+        // (SDT, Amlogic). Projector link, updates, remote pairing and keys, front-panel LEDs, customization, device
+        // info, OEM service, factory and QA tests. Its stock home screen is Google TV's own (launcherx).
+        "com.sdt.projector.observer", "com.sdt.upgrade", "com.sdt.ota", "com.mft.rcupair", "com.sdt.globalkey",
+        "com.sdt.globalkey.overlay", "com.mft.frontpanelledsservice", "com.sdt.customization", "com.sdt.deviceinfo",
+        "com.oemservice", "com.sdt.producttest", "com.oem.qa", "com.amlogic.voicesubtitle",
+        "android.autoinstalls.config.AMLSTBAndroid.device",
         // HY300 projectors (Hotack, Allwinner H713): keystone and projection settings, the HDMI player, Miracast receiver
         "com.htc.htcsettings", "com.softwinner.awlivetv", "com.softwinner.miracastReceiver",
         // Amazon Fire TV: launcher, settings, setup, remote pairing, inputs, live TV, channel scan, OTA updates, Appstore

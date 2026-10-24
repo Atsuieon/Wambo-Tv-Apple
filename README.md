@@ -17,6 +17,8 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
   przycisk Home.
 - **Żadna aplikacja z „wanbo”, „projector”, „keystone”, „focus” w nazwie nie zostanie wyłączona.**
 - **Skrót do menu projektora** w dolnej szufladzie: otwiera fabryczny ekran Wanbo, gdzie są ustawienia projekcji.
+- **Wersja z Google TV** ma w środku wbudowaną przystawkę Skyworth „4K Google TV Stick” (Android 14). Jej aplikacje
+  systemowe (połączenie z projektorem, aktualizacje, parowanie pilota, przyciski pilota) są na liście chronionych.
 - Ustawienia domyślne dla Polski: Warszawa, stopnie Celsjusza, złotówki, język polski.
 
 ## Instalacja (ok. 15 minut)

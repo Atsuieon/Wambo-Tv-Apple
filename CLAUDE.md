@@ -250,8 +250,11 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   non-Google stock home on (and then Google TV's setup app too): ours only takes Home with `set-home-activity`.
   Google's launchers go off as on any TV. `PROJECTOR` in `mayTurnOff` refuses any package named wanbo, projector,
   keystone, focus, trapez or imaging. `HomeApps.wanboHome` puts the maker's home screen in the drawer, for the
-  projection menus. No Wanbo package names have been read from a real device yet: `DEBLOAT` has no Wanbo entries
-  and `RemoteKeys` doesn't know its remote. Read the device first (see "Adapting it to another TV").
+  projection menus. The Google TV version (the owner's, read over adb) is really a built-in SkyworthDigital
+  "4K Google TV Stick" (Amlogic, Android 14; packages `com.sdt.*`, `com.mft.*`): `WANBO` is false there, its home
+  screen is Google TV's launcherx (off as on any TV), and its system pieces are in `PROTECTED`. It ships no promo apps
+  of its own, so `DEBLOAT` has no entries for it; `RemoteKeys` doesn't know its remote yet. As on Chromecast, port
+  5555 closes at every restart (pair over Wireless debugging, then `adb tcpip 5555`).
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.
