@@ -3,24 +3,25 @@ package io.freemytv;
 import java.nio.charset.StandardCharsets;
 
 /**
- * A small QR code encoder (byte mode, error correction M, versions 1 to 6: up to 106 bytes, plenty for a web address),
- * for PhoneUpload's screen: a phone's camera opens the address. Follows the QR standard (ISO/IEC 18004) the way
+ * A small QR code encoder (byte mode, error correction M, versions 1 to 10: up to 213 bytes), for PhoneUpload's screen
+ * (a phone's camera opens the address) and WifiActivity's (it joins the guest Wi-Fi). Follows the QR standard (ISO/IEC 18004) the way
  * Project Nayuki's MIT-licensed generator lays it out.
  */
 final class Qr {
     private Qr() {}
 
     // Error correction M, by version (index 0 unused).
-    private static final int[] ECC_PER_BLOCK = {-1, 10, 16, 26, 18, 24, 16};
-    private static final int[] BLOCKS = {-1, 1, 1, 1, 2, 2, 4};
+    private static final int[] ECC_PER_BLOCK = {-1, 10, 16, 26, 18, 24, 16, 18, 22, 22, 26};
+    private static final int[] BLOCKS = {-1, 1, 1, 1, 2, 2, 4, 4, 4, 5, 5};
+    private static final int MAX_VERSION = 10;
     private static final int FORMAT_M = 0;   // the format bits of level M
 
-    /** The modules, [y][x], true = dark; null when the text doesn't fit in version 6. */
+    /** The modules, [y][x], true = dark; null when the text doesn't fit in version 10. */
     static boolean[][] encode(String text) {
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
-        for (int ver = 1; ver <= 6; ver++) {
+        for (int ver = 1; ver <= MAX_VERSION; ver++) {
             int capacity = dataCodewords(ver) * 8;
-            int needed = 4 + 8 + bytes.length * 8;
+            int needed = 4 + countBits(ver) + bytes.length * 8;
             if (needed <= capacity) return build(ver, bytes);
         }
         return null;
@@ -30,7 +31,7 @@ final class Qr {
         int capacityBits = dataCodewords(ver) * 8;
         Bits bits = new Bits(capacityBits);
         bits.add(0x4, 4);                    // byte mode
-        bits.add(bytes.length, 8);           // character count (8 bits up to version 9)
+        bits.add(bytes.length, countBits(ver));
         for (byte b : bytes) bits.add(b & 0xFF, 8);
         bits.add(0, Math.min(4, capacityBits - bits.size));   // terminator
         bits.add(0, (8 - bits.size % 8) % 8);
@@ -62,6 +63,11 @@ final class Qr {
     }
 
     // MARK: - Sizes
+
+    /** The character count's length in byte mode: 8 bits up to version 9, 16 from version 10. */
+    private static int countBits(int ver) {
+        return ver <= 9 ? 8 : 16;
+    }
 
     private static int rawDataModules(int ver) {
         int result = (16 * ver + 128) * ver + 64;
@@ -105,6 +111,16 @@ final class Qr {
             }
         }
         drawFormat(0, size, m, f);   // reserves the format areas; drawn for real after the mask is chosen
+        if (ver >= 7) {   // the version, twice (BCH code)
+            int rem = ver;
+            for (int i = 0; i < 12; i++) rem = (rem << 1) ^ ((rem >>> 11) * 0x1F25);
+            int bits = ver << 12 | rem;
+            for (int i = 0; i < 18; i++) {
+                int a = size - 11 + i % 3, b = i / 3;
+                set(m, f, a, b, bit(bits, i));
+                set(m, f, b, a, bit(bits, i));
+            }
+        }
     }
 
     private static void finder(int cx, int cy, int size, boolean[][] m, boolean[][] f) {

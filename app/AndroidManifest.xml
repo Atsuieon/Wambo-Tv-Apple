@@ -32,6 +32,8 @@
         <package android:name="com.peacock.peacockfiretv" />
         <package android:name="com.globo.globotv" />
         <package android:name="com.spotify.tv.android" />
+        <!-- Moonlight: games streamed from a PC (the top button) -->
+        <package android:name="com.limelight" />
         <package android:name="com.tcl.tv" />
         <package android:name="com.google.android.tv" />
         <package android:name="com.mediatek.wwtv.tvcenter" />
@@ -89,6 +91,17 @@
         <!-- My Photos: thumbnails, where each one shows, the background's blur (Home Settings > My Photos). -->
         <activity
             android:name=".PhotosActivity"
+            android:process=":home"
+            android:exported="false"
+            android:label="Free My TV"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/FreeMyTV.Home" />
+
+        <!-- Guest Wi-Fi: a QR code that joins the network (the home screen's top button). -->
+        <activity
+            android:name=".WifiActivity"
             android:process=":home"
             android:exported="false"
             android:label="Free My TV"

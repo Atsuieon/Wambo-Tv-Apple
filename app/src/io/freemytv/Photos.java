@@ -41,7 +41,7 @@ final class Photos {
     /** At most this many (about 300 KB each); later ones wait in the folder until some are removed. */
     static final int MAX = 100;
     /** Smaller ones are icons and thumbnails, not photos. */
-    private static final int MIN_SIDE = 640;
+    static final int MIN_SIDE = 640;
 
     private static File dir(Context c) {
         return new File(c.getFilesDir(), "photos");

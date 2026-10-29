@@ -267,6 +267,13 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   both: `Photos.files(c, where)`, `onHome`, `onSaver`), plus the background's blur (`Prefs.photoBlur`, 0 = sharp at
   the screen's size, then `Backdrop.make(..., blur)` at half size with a growing box blur) and how often it changes
   (`Prefs.photoInterval`).
+  Top buttons: `HomeApps.TOP_ALL` lists every one (Settings > Top Buttons), `TOP_DEFAULT` the owner's (no Live TV:
+  no tuner). "Guest Wi-Fi" is `WifiActivity`: a `WIFI:T:WPA;S:…;P:…;;` QR code (`Qr` goes to version 10 for long
+  passwords), the name shown and the password hidden, both typed on the TV (`Prefs.guestSsid`, `guestPassword`),
+  never in the code. "Moonlight" opens `com.limelight` (the owner streams games from a PC with Sunshine), or its Play
+  Store page. The shelf wraps around (right past the last app is the first). `PhoneUpload` leaves out photos under
+  `Photos.MIN_SIDE`: the page checks the size before sending, the TV checks again (HEIC the browser can't read), and
+  the QR screen counts them.
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.

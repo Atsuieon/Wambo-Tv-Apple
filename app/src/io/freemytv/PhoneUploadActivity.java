@@ -66,10 +66,15 @@ public class PhoneUploadActivity extends Activity implements PhoneUpload.Listene
         view.received(count);
     }
 
+    @Override public void skipped(int count) {
+        view.skipped(count);
+    }
+
     private static final class UploadView extends View {
         private static final int BG = 0xFF111113, WHITE = 0xFFF5F5F7, DIM = 0xFF98989D, GREEN = 0xFF30D158;
         private String url;
-        private int count;
+        private int count, skipped;
+        private Paint skippedPaint;
         private Bitmap qr;
         private final Paint qrPaint = new Paint();
         private final RectF card = new RectF();
@@ -95,6 +100,11 @@ public class PhoneUploadActivity extends Activity implements PhoneUpload.Listene
             invalidate();
         }
 
+        void skipped(int n) {
+            skipped = n;
+            invalidate();
+        }
+
         private static Bitmap bitmap(boolean[][] m) {
             if (m == null) return null;
             int quiet = 4, s = m.length + 2 * quiet;
@@ -111,6 +121,7 @@ public class PhoneUploadActivity extends Activity implements PhoneUpload.Listene
             title = Ui.text(Ui.displaySemibold, 72 * k, WHITE);
             address = Ui.text(Ui.medium, 34 * k, WHITE);
             counter = Ui.text(Ui.semibold, 38 * k, GREEN);
+            skippedPaint = Ui.text(Ui.semibold, 34 * k, 0xFFFF9F0A);
             body = new TextPaint(Ui.text(Ui.regular, 34 * k, DIM));
         }
 
@@ -131,6 +142,11 @@ public class PhoneUploadActivity extends Activity implements PhoneUpload.Listene
             y += 70 * k;
             if (count > 0) {
                 c.drawText(Ui.trf("Photos received: {n}", "n", count), left, y, counter);
+                y += 30 * k;
+            }
+            if (skipped > 0) {
+                y += 26 * k;
+                c.drawText(Ui.trf("Left out as too small: {n}", "n", skipped), left, y, skippedPaint);
                 y += 30 * k;
             }
             paragraph(c, Ui.tr("When you're done, press Back: the photos show up on the home screen."), left, y, width);

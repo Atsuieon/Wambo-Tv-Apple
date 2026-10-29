@@ -37,6 +37,9 @@ final class PhoneUpload {
     interface Listener {
         /** On the main thread, after each photo that arrived whole. */
         void received(int count);
+
+        /** On the main thread, after each photo left out for being too small (Photos.MIN_SIDE). */
+        void skipped(int count);
     }
 
     private static final int FIRST_PORT = 8642, LAST_PORT = 8652;
@@ -48,7 +51,7 @@ final class PhoneUpload {
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
     private final String token;
-    private final AtomicInteger received = new AtomicInteger(), seq = new AtomicInteger();
+    private final AtomicInteger received = new AtomicInteger(), skipped = new AtomicInteger(), seq = new AtomicInteger();
     private final ExecutorService pool = Executors.newFixedThreadPool(3);
     private volatile ServerSocket server;
     private volatile long lastActivity = System.currentTimeMillis();
@@ -216,7 +219,23 @@ final class PhoneUpload {
                 lastActivity = System.currentTimeMillis();
             }
         }
-        if (left > 0 || !part.renameTo(done)) {
+        if (left > 0) {
+            part.delete();
+            respond(out, 400, "application/json", error(Ui.tr("The photo didn't arrive whole. Try again.")));
+            return;
+        }
+        // Too small to fill the screen: left out here, and the phone says why (the page checks too, before sending).
+        android.graphics.BitmapFactory.Options bounds = new android.graphics.BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeFile(part.getPath(), bounds);
+        if (bounds.outWidth > 0 && bounds.outHeight > 0 && Math.min(bounds.outWidth, bounds.outHeight) < Photos.MIN_SIDE) {
+            part.delete();
+            int n = skipped.incrementAndGet();
+            main.post(() -> listener.skipped(n));
+            respond(out, 422, "application/json", tooSmall(bounds.outWidth, bounds.outHeight));
+            return;
+        }
+        if (!part.renameTo(done)) {
             part.delete();
             respond(out, 400, "application/json", error(Ui.tr("The photo didn't arrive whole. Try again.")));
             return;
@@ -237,6 +256,16 @@ final class PhoneUpload {
             return new JSONObject().put("ok", false).put("error", message).toString();
         } catch (org.json.JSONException e) {
             return "{\"ok\":false}";
+        }
+    }
+
+    private static String tooSmall(int w, int h) {
+        try {
+            return new JSONObject().put("ok", false).put("small", true).put("error", Ui.trf(
+                    "This photo is too small ({w} × {h}). It needs at least {min} pixels on its shorter side.",
+                    "w", w, "h", h, "min", Photos.MIN_SIDE)).toString();
+        } catch (org.json.JSONException e) {
+            return "{\"ok\":false,\"small\":true}";
         }
     }
 
@@ -277,17 +306,31 @@ final class PhoneUpload {
                 + "<p>" + html(Ui.tr("This page stops working once the screen on the TV is closed.")) + "</p>"
                 + "</main><script>"
                 + "var T={sending:" + js(Ui.tr("Sending {done} of {total}…")) + ",sent:" + js(Ui.tr("Sent: {n}. You can choose more."))
-                + ",failed:" + js(Ui.tr("Couldn't send {name}.")) + "};"
-                + "var f=document.getElementById('f'),msg=document.getElementById('msg'),fill=document.getElementById('fill'),sent=0;"
-                + "f.onchange=function(){var files=[].slice.call(f.files),i=0,total=files.length;"
-                + "function next(){if(i>=total){msg.textContent=T.sent.replace('{n}',sent);f.value='';return;}"
+                + ",sentSkipped:" + js(Ui.tr("Sent: {n}. Left out as too small: {m}."))
+                + ",failed:" + js(Ui.tr("Couldn't send {name}."))
+                + ",small:" + js(Ui.tr("This photo is too small ({w} × {h}). It needs at least {min} pixels on its shorter side."))
+                + "},MIN=" + Photos.MIN_SIDE + ";"
+                + "var f=document.getElementById('f'),msg=document.getElementById('msg'),fill=document.getElementById('fill');"
+                + "f.onchange=function(){var files=[].slice.call(f.files),i=0,total=files.length,sent=0,skipped=0;"
+                + "function finish(){msg.textContent=skipped?T.sentSkipped.replace('{n}',sent).replace('{m}',skipped)"
+                + ":T.sent.replace('{n}',sent);f.value='';}"
+                + "function step(ok){i++;fill.style.width=(i/total*100)+'%';setTimeout(next,ok?0:1800);}"
+                // The size first, in the browser: a photo too small isn't sent at all (one the browser can't read,
+                // like HEIC on some phones, goes anyway and the TV checks it).
+                + "function size(file,cb){var u;try{u=URL.createObjectURL(file);}catch(e){cb(0,0);return;}"
+                + "var im=new Image();im.onload=function(){URL.revokeObjectURL(u);cb(im.naturalWidth,im.naturalHeight);};"
+                + "im.onerror=function(){URL.revokeObjectURL(u);cb(0,0);};im.src=u;}"
+                + "function next(){if(i>=total){finish();return;}"
                 + "var file=files[i];msg.textContent=T.sending.replace('{done}',i+1).replace('{total}',total);"
+                + "size(file,function(w,h){if(w&&h&&Math.min(w,h)<MIN){skipped++;"
+                + "msg.textContent=T.small.replace('{w}',w).replace('{h}',h).replace('{min}',MIN);step(false);return;}send(file);});}"
+                + "function send(file){"
                 + "var x=new XMLHttpRequest();x.open('PUT','" + "/" + token + "/up?name='+encodeURIComponent(file.name||'photo.jpg'));"
                 + "x.upload.onprogress=function(e){if(e.lengthComputable)fill.style.width=((i+e.loaded/e.total)/total*100)+'%';};"
-                + "x.onload=function(){var ok=false,err='';try{var r=JSON.parse(x.responseText);ok=r.ok;err=r.error||'';}catch(e){}"
-                + "if(ok)sent++;else{msg.textContent=err||T.failed.replace('{name}',file.name);}"
-                + "i++;fill.style.width=(i/total*100)+'%';setTimeout(next,ok?0:1500);};"
-                + "x.onerror=function(){msg.textContent=T.failed.replace('{name}',file.name);i++;setTimeout(next,1500);};"
+                + "x.onload=function(){var ok=false,err='',small=false;"
+                + "try{var r=JSON.parse(x.responseText);ok=r.ok;err=r.error||'';small=!!r.small;}catch(e){}"
+                + "if(ok)sent++;else{if(small)skipped++;msg.textContent=err||T.failed.replace('{name}',file.name);}step(ok);};"
+                + "x.onerror=function(){msg.textContent=T.failed.replace('{name}',file.name);step(false);};"
                 + "x.send(file);}next();};"
                 + "</script></body></html>";
     }

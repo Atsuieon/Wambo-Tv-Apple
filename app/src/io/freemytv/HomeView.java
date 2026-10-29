@@ -2122,9 +2122,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         switch (zone) {
             case Z_SHELF:
                 if (dx != 0) {
-                    int next = Math.max(0, Math.min(shelf.size() - 1, shelfIndex + dx));
-                    if (next == shelfIndex) return;
-                    shelfIndex = next;
+                    // Past the last app, back to the first (and from the first to the last): the owner's pick
+                    if (shelf.size() < 2) return;
+                    shelfIndex = (shelfIndex + dx + shelf.size()) % shelf.size();
                 } else if (dy < 0) {
                     if (hero != null && hero.button) {
                         zone = Z_HERO;

@@ -171,6 +171,15 @@ final class Prefs {
         version++;
     }
 
+    /** Guest Wi-Fi (WifiActivity): typed on the TV, kept only in the app's own settings. */
+    static String guestSsid() { return sp().getString("guestSsid", ""); }
+    static String guestPassword() { return sp().getString("guestPassword", ""); }
+
+    static void setGuestWifi(String ssid, String password) {
+        sp().edit().putString("guestSsid", ssid).putString("guestPassword", password).apply();
+        version++;
+    }
+
     /** Only this photo on the home screen: every other one goes off it. */
     static void setOnlyHomePhoto(java.util.List<String> all, String name) {
         java.util.Set<String> set = new java.util.HashSet<>(all);

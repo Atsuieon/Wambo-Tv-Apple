@@ -60,6 +60,11 @@ final class HomeApps {
     static final int INPUTS = 7;
     /** "Photos from your phone": the QR code screen that takes photos from a phone (PhoneUploadActivity). */
     static final int PHONE_PHOTOS = 8;
+    /** "Guest Wi-Fi": a QR code that joins the network (WifiActivity). */
+    static final int GUEST_WIFI = 9;
+    /** "Moonlight": games streamed from the owner's PC (com.limelight; the Play Store page until it's installed). */
+    static final int MOONLIGHT = 10;
+    static final String MOONLIGHT_PKG = "com.limelight";
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -228,17 +233,22 @@ final class HomeApps {
 
     // MARK: - Top buttons (the round ones at the top right)
 
-    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_PHOTOS = "photos", TOP_SETTINGS = "settings";
-    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS,
-            TOP_PHOTOS, TOP_SETTINGS));
-    static final int MAX_TOP = TOP_DEFAULT.size();
+    static final String TOP_LIVE = "live", TOP_INPUTS = "inputs", TOP_PHOTOS = "photos", TOP_WIFI = "wifi",
+            TOP_MOONLIGHT = "moonlight", TOP_SETTINGS = "settings";
+    /** Every button that can go at the top (Settings > Top Buttons), in this order. */
+    static final List<String> TOP_ALL = Collections.unmodifiableList(java.util.Arrays.asList(TOP_LIVE, TOP_INPUTS,
+            TOP_PHOTOS, TOP_WIFI, TOP_MOONLIGHT, TOP_SETTINGS));
+    /** Until the person edits them: no Live TV (a projector has no tuner). */
+    static final List<String> TOP_DEFAULT = Collections.unmodifiableList(java.util.Arrays.asList(TOP_INPUTS,
+            TOP_PHOTOS, TOP_WIFI, TOP_MOONLIGHT, TOP_SETTINGS));
+    static final int MAX_TOP = TOP_ALL.size();
 
     /** The keys of the top buttons, in order (Settings > Top Buttons; by default Live TV, HDMI Inputs, Settings). */
     static List<String> topButtonKeys() {
         List<String> saved = Prefs.topButtons();
         if (saved == null) return TOP_DEFAULT;
         List<String> keys = new ArrayList<>();
-        for (String key : saved) if (TOP_DEFAULT.contains(key) && !keys.contains(key)) keys.add(key);
+        for (String key : saved) if (TOP_ALL.contains(key) && !keys.contains(key)) keys.add(key);
         return keys;
     }
 
@@ -254,6 +264,8 @@ final class HomeApps {
             case TOP_LIVE: return action(LIVE_TV, TOP_LIVE, Ui.tr("light|Live TV"), "live_tv");
             case TOP_INPUTS: return action(INPUTS, TOP_INPUTS, Ui.tr("HDMI Inputs"), "hdmi");
             case TOP_PHOTOS: return action(PHONE_PHOTOS, TOP_PHOTOS, Ui.tr("Photos from your phone"), "add_photo");
+            case TOP_WIFI: return action(GUEST_WIFI, TOP_WIFI, Ui.tr("Guest Wi-Fi"), "wifi");
+            case TOP_MOONLIGHT: return action(MOONLIGHT, TOP_MOONLIGHT, "Moonlight", "gamepad");
             default: return action(SETTINGS, TOP_SETTINGS, Ui.tr("light|Settings"), "settings");
         }
     }
@@ -261,7 +273,7 @@ final class HomeApps {
     /** What can go in the top buttons, as {key, name}. */
     static List<String[]> topCandidates() {
         List<String[]> out = new ArrayList<>();
-        for (String key : TOP_DEFAULT) out.add(new String[] {key, topButton(key).label});
+        for (String key : TOP_ALL) out.add(new String[] {key, topButton(key).label});
         return out;
     }
 
@@ -518,6 +530,16 @@ final class HomeApps {
                 break;
             case PHONE_PHOTOS:
                 intent = new Intent().setComponent(new ComponentName(a, PhoneUploadActivity.class));
+                break;
+            case GUEST_WIFI:
+                intent = new Intent().setComponent(new ComponentName(a, WifiActivity.class));
+                break;
+            case MOONLIGHT:
+                intent = launchIntent(a.getPackageManager(), MOONLIGHT_PKG);
+                if (intent == null) {   // not installed yet: its page in the Play Store, or on the web
+                    plain = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://play.google.com/store/apps/details?id=" + MOONLIGHT_PKG));
+                    intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=" + MOONLIGHT_PKG));
+                }
                 break;
             case DEVICE:
                 // A fresh task: else Back walks through whatever the maker's settings app had open before
