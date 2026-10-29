@@ -274,6 +274,11 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   Store page. The shelf wraps around (right past the last app is the first). `PhoneUpload` leaves out photos under
   `Photos.MIN_SIDE`: the page checks the size before sending, the TV checks again (HEIC the browser can't read), and
   the QR screen counts them.
+  The settings screen (`SettingsActivity`) looks like Apple TV's: a dark backdrop with a glow, the big icon
+  (`assets/art/app-icon.png`, 600 px) on its reflection, the owner's name for it (`NAME`, "Seba to szef") and the
+  focused row's description on the left; on the right the main rows in three groups with colored icons (`M_*`,
+  `M_ICONS`, `M_COLORS`), My Photos among them. The comparison, picks and notices moved to Info (`INFO`). The bottom
+  drawer has My Photos too (`HomeApps.MY_PHOTOS`).
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.

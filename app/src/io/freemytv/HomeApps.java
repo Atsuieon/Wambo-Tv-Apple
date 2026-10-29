@@ -65,6 +65,8 @@ final class HomeApps {
     /** "Moonlight": games streamed from the owner's PC (com.limelight; the Play Store page until it's installed). */
     static final int MOONLIGHT = 10;
     static final String MOONLIGHT_PKG = "com.limelight";
+    /** "My Photos" in the bottom drawer (PhotosActivity). */
+    static final int MY_PHOTOS = 11;
     /** Image size of each card (16:9; on screen it shows up to ~330 px wide). */
     static final int TILE_W = 384, TILE_H = 216;
 
@@ -312,6 +314,7 @@ final class HomeApps {
         List<Item> items = new ArrayList<>();
         items.add(shortcut(ALL_APPS, "all", Ui.tr("All Apps"), "apps"));
         items.add(shortcut(SETTINGS, "settings", Ui.tr("Home Settings"), "settings"));
+        items.add(shortcut(MY_PHOTOS, "my-photos", Ui.tr("My Photos"), "add_photo"));
         items.add(shortcut(ANDROID_SETTINGS, "tv-settings", Ui.tr("TV Settings"), "tv_settings"));
         // HY300 projectors (Hotack, Allwinner H713): keystone and focus live in the maker's settings app, and the
         // stock home screen was the only way to its Miracast receiver. Each shows only where the TV has it.
@@ -530,6 +533,9 @@ final class HomeApps {
                 break;
             case PHONE_PHOTOS:
                 intent = new Intent().setComponent(new ComponentName(a, PhoneUploadActivity.class));
+                break;
+            case MY_PHOTOS:
+                intent = new Intent().setComponent(new ComponentName(a, PhotosActivity.class));
                 break;
             case GUEST_WIFI:
                 intent = new Intent().setComponent(new ComponentName(a, WifiActivity.class));

@@ -24,6 +24,9 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
   wybierz zdjęcia i gotowe: pojawią się w tle ekranu i w wygaszaczu. Odbieranie działa tylko, gdy ten ekran jest
   otwarty na projektorze, a adres jest za każdym razem inny.
 - Pogrubiona godzina i dźwięk nawigacji „miękka kropla”.
+- **Menu w stylu Apple TV** z napisem „Seba to szef”: ciemne tło, duża ikona z odbiciem, opis zaznaczonej opcji,
+  kolorowe ikonki i grupy (Ekran główny, Przyciski, System). „Moje zdjęcia” są w menu i w dolnej szufladzie ekranu
+  głównego, a porównanie, rekomendacje i komunikaty w „Informacjach”.
 - **Przyciski u góry** (domyślnie): HDMI, Zdjęcia z telefonu, Wi-Fi dla gości, Moonlight, Ustawienia.
   „Telewizję” można dodać z powrotem w Free My TV → Przyciski u góry.
 - **Wi-Fi dla gości:** duży kod QR, który goście skanują aparatem telefonu i od razu łączą się z siecią. Nazwa
