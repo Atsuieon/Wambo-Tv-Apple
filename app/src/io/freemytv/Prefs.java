@@ -188,6 +188,17 @@ final class Prefs {
         version++;
     }
 
+    /** The air quality next to the weather (Open-Meteo), today's unusual holiday under it (kalbi.pl), the picture of
+     *  the day behind the home screen and in the screensaver (Bing) and the shelf's 3D tilt: each can be turned off. */
+    static boolean air() { return sp().getBoolean("air", true); }
+    static void setAir(boolean on) { put("air", on); }
+    static boolean holiday() { return sp().getBoolean("holiday", true); }
+    static void setHoliday(boolean on) { put("holiday", on); }
+    static boolean dailyPicture() { return sp().getBoolean("dailyPicture", true); }
+    static void setDailyPicture(boolean on) { put("dailyPicture", on); }
+    static boolean tilt() { return sp().getBoolean("tilt", true); }
+    static void setTilt(boolean on) { put("tilt", on); }
+
     static boolean coin(int i) { return sp().getBoolean("coin" + i, true); }
     static void setCoin(int i, boolean on) { put("coin" + i, on); }
 

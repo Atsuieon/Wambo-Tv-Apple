@@ -176,6 +176,7 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
         recs.refreshIfStale();
         recs.prefetchAll();
         Photos.importInbox(getContext(), () -> { if (running) prepareNext(); });
+        Daily.refresh(getContext(), () -> { if (running) prepareNext(); });
         prepareNext();
         handler.postDelayed(tick, 60_000);
         Choreographer.getInstance().postFrameCallback(this);
@@ -264,7 +265,9 @@ final class DreamView extends View implements Choreographer.FrameCallback, HomeD
 
     /** Your photos when they are on, otherwise the picks'. */
     private List<Recs.Pick> photos() {
-        return Photos.onSaver(getContext()) ? Photos.picks(getContext()) : recs.showcase();
+        if (Photos.onSaver(getContext())) return Photos.picks(getContext());
+        List<Recs.Pick> showcase = recs.showcase();
+        return showcase.isEmpty() && Daily.on(getContext()) ? Photos.dailyPicks(getContext()) : showcase;
     }
 
     /** Loads the next photo in the background (one at a time); once ready, it comes in at the right moment. */

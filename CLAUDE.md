@@ -279,6 +279,13 @@ entries; its system pieces are in `PROTECTED`. USB debugging opens ADB on 5555 t
   focused row's description on the left; on the right the main rows in three groups with colored icons (`M_*`,
   `M_ICONS`, `M_COLORS`), My Photos among them. The comparison, picks and notices moved to Info (`INFO`). The bottom
   drawer has My Photos too (`HomeApps.MY_PHOTOS`).
+  Four extras, each with a Home Settings switch (`Prefs.air`, `holiday`, `dailyPicture`, `tilt`): the air quality
+  (`HomeData.Air`, Open-Meteo's air-quality API, hourly: "Air: good" on the weather line, PM2.5 and PM10 on the
+  drawer's weather card); today's unusual holiday under the clock (`HomeData.holidays`, from
+  jeakob.github.io/kalbi-holidays/today.json, a daily copy of kalbi.pl: only entries dated today, at most two);
+  the picture of the day (`Daily`, Bing's pl-PL image at 1920×1080, once a day) behind the home screen and in the
+  screensaver when none of the owner's photos is there, with its caption in the corner (`Backdrop.caption`); and
+  Apple TV's tilt on the focused shelf tile (`applyTilt`, a `Camera` rotation, and `drawShine`).
   `.github/workflows/apk.yml` builds `FreeMyTV-Wanbo.apk` on every push into the `najnowsza` release (the repository
   is public: never put a TMDB key into that build; optional secret `KEYSTORE_B64` keeps one signing key).
 - After any change, `./build.sh` must end with `Built FreeMyTV.apk`.

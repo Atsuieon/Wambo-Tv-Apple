@@ -113,6 +113,19 @@ final class Photos {
         return Prefs.photos() && !files(c, Prefs.PHOTO_SAVER).isEmpty();
     }
 
+    /** For the screensaver without your photos: the picture of the day, as one pick. */
+    static List<Recs.Pick> dailyPicks(Context c) {
+        List<Recs.Pick> out = new ArrayList<>();
+        File f = Daily.on(c) ? Daily.file(c) : null;
+        if (f == null) return out;
+        Recs.Pick p = new Recs.Pick();
+        p.kind = "photo";
+        p.id = 0;
+        p.photo = f;
+        out.add(p);
+        return out;
+    }
+
     /** For the screensaver: its photos as picks (no title, no caption). */
     static List<Recs.Pick> picks(Context c) {
         List<Recs.Pick> out = new ArrayList<>();
@@ -141,16 +154,23 @@ final class Photos {
      * changes, the previous one stays until the new one is ready; then `ready` runs.
      */
     static synchronized Backdrop backdrop(Context c, Runnable ready) {
-        if (!onHome(c)) {
+        File file;
+        String caption = null;
+        if (onHome(c)) {
+            List<File> list = files(c, Prefs.PHOTO_HOME);
+            long every = Math.max(1, Prefs.photoInterval()) * 60_000L;
+            file = list.get((int) ((System.currentTimeMillis() / every) % list.size()));
+        } else if (Daily.on(c)) {   // none of your photos there: the picture of the day
+            file = Daily.file(c);
+            caption = Daily.caption(c);
+        } else {
             backdrop = null;
             built = null;
             return null;
         }
-        List<File> list = files(c, Prefs.PHOTO_HOME);
-        long every = Math.max(1, Prefs.photoInterval()) * 60_000L;
-        File file = list.get((int) ((System.currentTimeMillis() / every) % list.size()));
         int blur = Prefs.photoBlur();
         String want = file.getName() + "|" + blur;
+        String shownCaption = caption == null || caption.isEmpty() ? null : caption;
         if (!want.equals(built) && !want.equals(building)) {
             building = want;
             worker.execute(() -> {
@@ -158,6 +178,7 @@ final class Photos {
                 try {
                     Bitmap src = BitmapFactory.decodeFile(file.getPath());
                     if (src != null) b = Backdrop.make(src, true, true, blur);
+                    if (b != null) b.caption = shownCaption;
                 } catch (RuntimeException | OutOfMemoryError e) {
                     AppLog.w("photos: background from " + file.getName() + ": " + e.getMessage());
                 }

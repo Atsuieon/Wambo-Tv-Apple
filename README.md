@@ -37,6 +37,12 @@ Oparty na otwartym projekcie [Free My TV](https://github.com/simbasjungles/free-
 - **Półka aplikacji się zapętla:** w prawo za ostatnią aplikacją jest pierwsza, w lewo przed pierwszą ostatnia.
 - **Za małe zdjęcia z telefonu** (poniżej 640 pikseli na krótszym boku): telefon mówi to od razu i ich nie wysyła,
   a ekran z kodem QR pokazuje, ile pominięto.
+- **Kafelki 3D:** zaznaczona aplikacja na półce przechyla się w stronę ruchu pilota i przesuwa się po niej błysk.
+- **Tapeta dnia:** codziennie nowe zdjęcie dnia z Bing w tle i w wygaszaczu, gdy nie ma tam Twoich zdjęć, z
+  podpisem w rogu.
+- **Jakość powietrza** przy pogodzie (Open-Meteo) i **święto dnia** pod zegarem (nietypowe święta z
+  [kalbi.pl](https://www.kalbi.pl), przez [jeakob/kalbi-holidays](https://github.com/jeakob/kalbi-holidays)).
+- Każdą z tych czterech rzeczy wyłączysz w **Free My TV → Ustawienia ekranu**.
 - **Moje zdjęcia** (Free My TV → Ustawienia ekranu → Moje zdjęcia → OK): miniatury wszystkich zdjęć. Przy każdym
   widać, czy jest na ekranie głównym i w wygaszaczu, a OK otwiera je w dużym podglądzie, gdzie włączysz je osobno
   tu i tam, ustawisz jako jedyne tło albo usuniesz. Na górze: rozmycie tła (0–100%), jak często zmienia się tło

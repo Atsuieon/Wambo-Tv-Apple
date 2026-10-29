@@ -11,6 +11,7 @@ import android.graphics.BitmapShader;
 import android.graphics.BlurMaskFilter;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
@@ -147,6 +148,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private final RectF[] cardRects = new RectF[3];
     private final List<HomeApps.Item> lightButtons = new ArrayList<>();
     private Paint lTitle, lTab, lTabOn, lCardTitle, lCardMeta, lQuote, lTip, lDate, lClock, lWeather, lClockQuote;
+    private Paint lHoliday, lCaption;
     private Shader lightGradient;
 
     // Shelf
@@ -238,8 +240,20 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private int w, h;
     private float k = 1;
     private String clockText = "", dateText = "", weatherLine = "";
-    private long weatherLineAt = -1;
+    private long weatherLineAt = -1, weatherLineAirAt = -1;
     private int weatherLinePrefs = -1;
+    private java.util.List<String> holidayNames;
+    // Apple TV's tilt: the focused app leans the way the remote moved, a light sweeps across it, and it settles flat.
+    private static final float TILT_DEG = 7f;
+    private static final long TILT_MS = 750;
+    private final android.graphics.Camera tiltCamera = new android.graphics.Camera();
+    private final Matrix tiltMatrix = new Matrix(), shineMatrix = new Matrix();
+    private final Paint shinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private LinearGradient shine;
+    private float shineFor = -1;
+    private int tiltIndex = -1, tiltDir;
+    private long tiltAt;
+    private String holidayLine = "";
     private String weatherLineLanguage = "";
     private long clockMinute = -1;
     private boolean okDown, backDown;
@@ -274,7 +288,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private float veilAmount = -1;
     private int veilColor;
     private HomeData.Weather textWeather;
-    private long textPricesAt = -1, textMinute = -1;
+    private long textPricesAt = -1, textMinute = -1, textAirAt = -1;
+    private String airText = "";
     private int textPrefs = -1;
     private String textLanguage;
     private String weatherTitle, nowTemp, highLow, sunriseText, sunsetText, staleText;
@@ -425,6 +440,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         data.refreshIfStale();
         recs.refreshIfStale();
         Photos.importInbox(getContext(), ownReady);   // photos a computer just sent
+        Daily.refresh(getContext(), ownReady);        // the picture of the day, once a day
         if (tvInputs != null) tvInputs.registerCallback(inputCallback, handler);
         handler.postDelayed(tick, 15_000);
         checkNotices();
@@ -612,6 +628,9 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lClock = Ui.numbers(Ui.displaySemibold, 200 * k, L_INK);
         lClock.setLetterSpacing(-0.01f);
         lWeather = Ui.text(Ui.medium, 34 * k, L_DIM);
+        lHoliday = Ui.text(Ui.semibold, 30 * k, L_DIM);
+        lCaption = Ui.text(Ui.medium, 22 * k, L_DIM);
+        lCaption.setTextAlign(Paint.Align.RIGHT);
         lClockQuote = Ui.numbers(Ui.medium, 28 * k, L_DIM);
         lightGradient = null;
         buttonPaint = Ui.text(Ui.semibold, 29 * k, INK);
@@ -664,7 +683,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lastNanos = frameTimeNanos;
         long up = SystemClock.uptimeMillis();
 
-        boolean tilesMoving = step(tileFocus, dt);
+        boolean tilesMoving = step(tileFocus, dt) | tickTilt(up);
         if (reorderAnim) tilesMoving |= stepReorder(dt, up);
         boolean statusMoving = step(statusFocus, dt);
         boolean heroMoving = heroFocus.step(dt);
@@ -711,6 +730,54 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         idle = !busy;
         if (busy) Choreographer.getInstance().postFrameCallback(this);
         else Choreographer.getInstance().postFrameCallbackDelayed(this, 1000);
+    }
+
+    /** The tilt animates while it lasts; when it ends, the tile is drawn flat once more. */
+    private boolean tickTilt(long up) {
+        if (tiltIndex < 0) return false;
+        if (up - tiltAt < TILT_MS && up >= tiltAt) return true;
+        tiltIndex = -1;
+        tilesDirty = true;
+        return false;
+    }
+
+    /** How far the tilt is (0 to 1), or -1 when this tile isn't tilting. */
+    private float tiltProgress(int i) {
+        if (i != tiltIndex || !Prefs.tilt()) return -1;
+        return Ui.clamp((SystemClock.uptimeMillis() - tiltAt) / (float) TILT_MS);
+    }
+
+    /** Leans the canvas around the tile's center: quickly to TILT_DEG, then eased back to flat. */
+    private void applyTilt(Canvas c, float p, float cx, float cy) {
+        float rise = 0.18f;
+        float a = p < rise ? (float) Math.sin(p / rise * Math.PI / 2)
+                : (float) Math.pow(Math.cos((p - rise) / (1 - rise) * Math.PI / 2), 2);
+        float deg = -tiltDir * TILT_DEG * a;
+        tiltCamera.save();
+        tiltCamera.rotateY(deg);
+        tiltCamera.getMatrix(tiltMatrix);
+        tiltCamera.restore();
+        tiltMatrix.preTranslate(-cx, -cy);
+        tiltMatrix.postTranslate(cx, cy);
+        c.concat(tiltMatrix);
+    }
+
+    /** The light sweeping over the tile, in the direction it moved. */
+    private void drawShine(Canvas c, RectF box, float r, float p) {
+        float w = box.width();
+        if (shine == null || shineFor != w) {
+            shineFor = w;
+            shine = new LinearGradient(0, 0, w * 0.45f, w * 0.12f, new int[] {0x00FFFFFF, 0x47FFFFFF, 0x00FFFFFF},
+                    new float[] {0, 0.5f, 1}, Shader.TileMode.CLAMP);
+        }
+        float t = Ui.clamp(p / 0.85f);
+        float x = tiltDir > 0 ? box.left - w * 0.5f + t * w * 1.6f : box.right + w * 0.05f - t * w * 1.6f;
+        shineMatrix.setTranslate(x, box.top);
+        shine.setLocalMatrix(shineMatrix);
+        shinePaint.setShader(shine);
+        shinePaint.setAlpha(Math.round(255 * (1 - t * t)));
+        c.drawRoundRect(box, r, r, shinePaint);
+        shinePaint.setShader(null);
     }
 
     private void wake() {
@@ -978,6 +1045,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         lDate.setColor(tone(L_DIM, 0xFF98989D));
         lClock.setColor(tone(L_INK, WHITE));
         lWeather.setColor(tone(L_DIM, 0xFF98989D));
+        lHoliday.setColor(tone(L_INK, 0xFFE5E5EA));
+        lCaption.setColor(tone(0xFF48484A, 0xB3FFFFFF));
         lClockQuote.setColor(tone(L_DIM, 0xFF98989D));
         staleQuote.setColor(tone(L_FAINT, 0x99FFFFFF));
     }
@@ -1363,6 +1432,17 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         shadowDeep.setColor(Ui.alpha(0xFF000000, tone(0.14f, 0.3f) + tone(0.18f, 0.3f) * fc + 0.14f * Ui.clamp(l)));
         shadows.draw(c, tmp, r0, DEEP_BLUR * k, shadowDeep);
         c.restore();
+        float tilt = tiltProgress(i);
+        c.save();
+        if (tilt >= 0) applyTilt(c, tilt, cx, cy);
+        drawTileFace(c, i, it, cell, cx, cy, bw, bh, r0, r, s, fc);
+        if (tilt >= 0 && tilt < 1) drawShine(c, cell, r, tilt);
+        c.restore();
+    }
+
+    /** The tile itself (its colors and logo, or its image): drawShelfTile's part that leans with the tilt. */
+    private void drawTileFace(Canvas c, int i, HomeApps.Item it, RectF cell, float cx, float cy, float bw, float bh,
+                              float r0, float r, float s, float fc) {
         int[] style = TILE_STYLE.get(it.key);
         if (it.logo != null && style != null) {
             if (tileShaders.length != shelf.size() || tileShaderH != bh) {
@@ -1649,7 +1729,8 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         float sx = hx, base = r.top + 258 * k;
         if (wx.sunrise != 0) sx = sunItem(c, "sunrise", sunriseText, sx, base) + 36 * k;
-        if (wx.sunset != 0) sunItem(c, "sunset", sunsetText, sx, base);
+        if (wx.sunset != 0) sx = sunItem(c, "sunset", sunsetText, sx, base) + 36 * k;
+        if (!airText.isEmpty()) c.drawText(airText, sx, base, cardDim);
     }
 
     private void refreshDrawerText() {
@@ -1668,6 +1749,14 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
             }
             sunriseText = Ui.trf("Sunrise {time}", "time", Ui.time(wx.sunrise));
             sunsetText = Ui.trf("Sunset {time}", "time", Ui.time(wx.sunset));
+        }
+        if (data.airAt != textAirAt || settings) {
+            textAirAt = data.airAt;
+            HomeData.Air a = data.air;
+            String quality = Prefs.air() ? HomeData.airQuality(a.aqi) : "";
+            airText = quality.isEmpty() ? "" : Double.isNaN(a.pm25) ? Ui.trf("Air: {quality}", "quality", quality)
+                    : Ui.trf("Air: {quality} · PM2.5 {pm25} · PM10 {pm10}", "quality", quality,
+                            "pm25", Math.round(a.pm25), "pm10", Double.isNaN(a.pm10) ? "—" : String.valueOf(Math.round(a.pm10)));
         }
         long minute = System.currentTimeMillis() / 60_000;
         if (data.pricesAt != textPricesAt || minute != textMinute || settings) {
@@ -2125,6 +2214,11 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
                     // Past the last app, back to the first (and from the first to the last): the owner's pick
                     if (shelf.size() < 2) return;
                     shelfIndex = (shelfIndex + dx + shelf.size()) % shelf.size();
+                    if (Prefs.tilt()) {
+                        tiltIndex = shelfIndex;
+                        tiltDir = dx;
+                        tiltAt = SystemClock.uptimeMillis();
+                    }
                 } else if (dy < 0) {
                     if (hero != null && hero.button) {
                         zone = Z_HERO;
@@ -2797,7 +2891,7 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         }
         for (Recs.Pick p : recs.wanted()) recs.backdrop(p);   // all three tabs preloaded: switching tabs is instant
         // Picks bring their own background; without them (no TMDB key), your photo if there is one.
-        boolean own = !picksOn() && Photos.onHome(getContext());
+        boolean own = !picksOn() && (Photos.onHome(getContext()) || Daily.on(getContext()));
         Backdrop b = own ? Photos.backdrop(getContext(), ownReady) : cards.isEmpty() ? null : recs.backdrop(cards.get(0));
         if (b != null || (cards.isEmpty() && !own)) showBackdrop(b);
         heroDirty = true;
@@ -2853,6 +2947,12 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
     private void drawLightImage(Canvas c, Backdrop b, float alpha) {
         if (night < 0.999f || b.nightImage == null) drawImage(c, b.lightImage, alpha);
         if (night > 0.001f) drawImage(c, b.nightImage, alpha * night);
+        if (b.caption != null && lCaption != null && alpha > 0.01f) {   // the picture of the day: what it shows
+            int keep = lCaption.getAlpha();
+            lCaption.setAlpha(Math.round(keep * Math.min(1, alpha)));
+            c.drawText(b.caption, CONTENT_R * k, h - 26 * k, lCaption);
+            lCaption.setAlpha(keep);
+        }
     }
 
     private void drawLightTop(Canvas c) {
@@ -2904,19 +3004,36 @@ final class HomeView extends ViewGroup implements Choreographer.FrameCallback, H
         c.drawText(dateText, x - Ui.leftBearing(lDate, dateText), L_DATE_BASE * k, lDate);
         c.drawText(clockText, x - Ui.leftBearing(lClock, clockText), L_CLOCK_BASE * k, lClock);
         HomeData.Weather wx = data.weather;
-        if (!Prefs.weather() || Double.isNaN(wx.temp)) return;
-        if (data.weatherAt != weatherLineAt || Prefs.version != weatherLinePrefs || !Ui.language.equals(weatherLineLanguage)) {
-            weatherLineAt = data.weatherAt;
-            weatherLinePrefs = Prefs.version;
-            weatherLineLanguage = Ui.language;
-            weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
-                    + HomeData.highLow(wx, "  ");
+        boolean weatherShown = Prefs.weather() && !Double.isNaN(wx.temp);
+        if (weatherShown) {
+            if (data.weatherAt != weatherLineAt || data.airAt != weatherLineAirAt || Prefs.version != weatherLinePrefs
+                    || !Ui.language.equals(weatherLineLanguage)) {
+                weatherLineAt = data.weatherAt;
+                weatherLineAirAt = data.airAt;
+                weatherLinePrefs = Prefs.version;
+                weatherLineLanguage = Ui.language;
+                weatherLine = HomeData.degrees(wx.temp) + "  " + HomeData.condition(wx.code, wx.isDay) + "   "
+                        + HomeData.highLow(wx, "  ");
+                String quality = Prefs.air() ? HomeData.airQuality(data.air.aqi) : "";
+                if (!quality.isEmpty()) weatherLine += "   " + Ui.trf("Air: {quality}", "quality", quality);
+            }
+            float size = 40 * k, base = L_WEATHER_BASE * k;
+            String symbol = Symbols.weather(wx.code, wx.isDay);
+            float sw = Symbols.width(getContext(), symbol, size);
+            Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
+            c.drawText(weatherLine, x + sw + 16 * k, base, lWeather);
         }
-        float size = 40 * k, base = L_WEATHER_BASE * k;
-        String symbol = Symbols.weather(wx.code, wx.isDay);
-        float sw = Symbols.width(getContext(), symbol, size);
-        Symbols.draw(getContext(), c, symbol, x + sw / 2, base - Ui.halfCap(lWeather), size, lWeather.getColor());
-        c.drawText(weatherLine, x + sw + 16 * k, base, lWeather);
+        // Today's unusual holiday, under the weather (and under the prices when they show there).
+        java.util.List<String> names = data.holidays;
+        if (!Prefs.holiday() || names.isEmpty() || !HomeData.today().equals(data.holidaysFor)) return;
+        if (names != holidayNames) {
+            holidayNames = names;
+            holidayLine = String.join("  ·  ", names);
+        }
+        float hb = weatherShown ? (HomeData.coinCount() > 0 ? L_QUOTES_BASE + 62 : L_WEATHER_BASE + 62) : L_WEATHER_BASE;
+        float size = 32 * k, sw = Symbols.width(getContext(), "sparkles", size);
+        Symbols.draw(getContext(), c, "sparkles", x + sw / 2, hb * k - Ui.halfCap(lHoliday), size, lHoliday.getColor());
+        c.drawText(holidayLine, x + sw + 16 * k, hb * k, lHoliday);
     }
 
     /**

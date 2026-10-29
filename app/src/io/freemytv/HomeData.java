@@ -53,7 +53,19 @@ final class HomeData {
     private static String weatherUrl() {
         return "https://api.open-meteo.com/v1/forecast?latitude=" + Prefs.latitude() + "&longitude=" + Prefs.longitude() + WEATHER_QUERY;
     }
-    private static final long PRICES_EVERY = 5 * 60_000L, WEATHER_EVERY = 30 * 60_000L;
+    private static final long PRICES_EVERY = 5 * 60_000L, WEATHER_EVERY = 30 * 60_000L, AIR_EVERY = 60 * 60_000L;
+    /** Today's unusual holidays (kalbi.pl, published each day by github.com/jeakob/kalbi-holidays): no key. */
+    private static final String HOLIDAYS_URL = "https://jeakob.github.io/kalbi-holidays/today.json";
+
+    private static String airUrl() {
+        return "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + Prefs.latitude() + "&longitude="
+                + Prefs.longitude() + "&current=european_aqi,pm2_5,pm10&timezone=auto";
+    }
+
+    /** Today as yyyy-MM-dd on the TV's clock. */
+    static String today() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new java.util.Date());
+    }
     interface Listener { void onData(); }
 
     /** BTC, ETH and SOL; in Brazilian reais also the dollar (USDT/BRL), which Binance doesn't list for most currencies. */
@@ -119,6 +131,23 @@ final class HomeData {
         throw failed;
     }
 
+    /** The air right now: the European air quality index (0 good … 100+ extremely poor) and PM2.5 / PM10 in µg/m³. */
+    static final class Air {
+        int aqi = -1;
+        double pm25 = Double.NaN, pm10 = Double.NaN;
+    }
+
+    /** The index's level in words, from the European scale (20 per step). */
+    static String airQuality(int aqi) {
+        if (aqi < 0) return "";
+        if (aqi <= 20) return Ui.tr("air|Good");
+        if (aqi <= 40) return Ui.tr("air|Fair");
+        if (aqi <= 60) return Ui.tr("air|Moderate");
+        if (aqi <= 80) return Ui.tr("air|Poor");
+        if (aqi <= 100) return Ui.tr("air|Very poor");
+        return Ui.tr("air|Extremely poor");
+    }
+
     static final class Weather {
         double temp = Double.NaN, max = Double.NaN, min = Double.NaN;
         int code = -1;
@@ -141,15 +170,20 @@ final class HomeData {
     final double[] prices = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
     /** 24 h change (%), in the same order. */
     final double[] changes = {Double.NaN, Double.NaN, Double.NaN, Double.NaN};
-    volatile long pricesAt, weatherAt;
+    volatile long pricesAt, weatherAt, airAt;
     volatile Weather weather = new Weather();
+    volatile Air air = new Air();
+    /** Today's unusual holidays (at most two names), and the day they are for. */
+    volatile List<String> holidays = new ArrayList<>();
+    volatile String holidaysFor = "";
 
     private final SharedPreferences cache;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
     private final List<Listener> listeners = new ArrayList<>();
-    private volatile boolean fetchingPrices, fetchingWeather;
-    private volatile long pricesFailedAt, weatherFailedAt;
+    private volatile boolean fetchingPrices, fetchingWeather, fetchingAir, fetchingHolidays;
+    private volatile long pricesFailedAt, weatherFailedAt, airFailedAt, holidaysFailedAt;
+    private volatile String airFor = "";
     /** The city of the forecast in memory: another process (ScreensaverAlone) can see the city change under it. */
     private volatile String weatherFor = "";
 
@@ -168,6 +202,17 @@ final class HomeData {
                 weather = parseWeather(w);
                 weatherAt = cache.getLong("weatherAt", 0);
                 weatherFor = weatherPlace();
+            }
+            String a = cache.getString("air", null);
+            if (a != null && weatherPlace().equals(cache.getString("airPlace", ""))) {
+                air = parseAir(a);
+                airAt = cache.getLong("airAt", 0);
+                airFor = weatherPlace();
+            }
+            String h = cache.getString("holidays", null);
+            if (h != null && today().equals(cache.getString("holidaysFor", ""))) {
+                holidays = parseHolidays(h);
+                holidaysFor = today();
             }
         } catch (Exception ignored) {}
     }
@@ -225,6 +270,78 @@ final class HomeData {
                 }
             });
         }
+        refreshExtras(now);
+    }
+
+    /** The air quality (hourly) and today's holidays (once a day), each only while it's turned on. */
+    private void refreshExtras(long now) {
+        boolean airMoved = !weatherPlace().equals(airFor);
+        if (Prefs.air() && !fetchingAir && (airMoved || now - airAt > AIR_EVERY || now < airAt) && !failedRecently(airFailedAt, now)) {
+            fetchingAir = true;
+            io.execute(() -> {
+                try {
+                    String place = weatherPlace();
+                    String body = get(airUrl());
+                    air = parseAir(body);
+                    airAt = System.currentTimeMillis();
+                    airFor = place;
+                    cache.edit().putString("air", body).putLong("airAt", airAt).putString("airPlace", place).apply();
+                    notifyListeners();
+                } catch (Exception e) {
+                    airFailedAt = System.currentTimeMillis();
+                    AppLog.w("air: " + e.getMessage());
+                } finally {
+                    fetchingAir = false;
+                }
+            });
+        }
+        String day = today();
+        // A list for another day (published late, or not at all) is tried again in half an hour, not every minute.
+        boolean waited = holidaysFailedAt == 0 || now < holidaysFailedAt || now - holidaysFailedAt > 30 * 60_000L;
+        if (Prefs.holiday() && !fetchingHolidays && !day.equals(holidaysFor) && waited) {
+            fetchingHolidays = true;
+            io.execute(() -> {
+                try {
+                    String body = get(HOLIDAYS_URL);
+                    List<String> names = parseHolidays(body);
+                    if (names.isEmpty()) throw new IOException("no holidays for " + day);
+                    holidays = names;
+                    holidaysFor = day;
+                    cache.edit().putString("holidays", body).putString("holidaysFor", day).apply();
+                    notifyListeners();
+                } catch (Exception e) {
+                    holidaysFailedAt = System.currentTimeMillis();
+                    AppLog.w("holidays: " + e.getMessage());
+                } finally {
+                    fetchingHolidays = false;
+                }
+            });
+        }
+    }
+
+    private static Air parseAir(String body) throws Exception {
+        JSONObject current = new JSONObject(body).getJSONObject("current");
+        Air a = new Air();
+        a.aqi = current.isNull("european_aqi") ? -1 : (int) Math.round(current.getDouble("european_aqi"));
+        a.pm25 = current.isNull("pm2_5") ? Double.NaN : current.getDouble("pm2_5");
+        a.pm10 = current.isNull("pm10") ? Double.NaN : current.getDouble("pm10");
+        return a;
+    }
+
+    /** Today's holiday names from the list (only entries dated today), at most two, the shorter ones first. */
+    static List<String> parseHolidays(String body) throws Exception {
+        JSONArray list = new JSONArray(body);
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int month = cal.get(java.util.Calendar.MONTH) + 1, dayOfMonth = cal.get(java.util.Calendar.DAY_OF_MONTH);
+        List<String> names = new ArrayList<>();
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject o = list.optJSONObject(i);
+            if (o == null || o.optInt("month") != month || o.optInt("day") != dayOfMonth) continue;
+            String name = o.optString("name", "").trim();
+            if (!name.isEmpty() && !names.contains(name)) names.add(name);
+        }
+        java.util.Collections.sort(names, (a, b) -> a.length() - b.length());
+        return names.size() > 2 ? new ArrayList<>(names.subList(0, 2)) : names;
     }
 
     private static boolean failedRecently(long at, long now) {

@@ -771,7 +771,8 @@ public class SettingsActivity extends Activity {
 
         private static final String[] UNITS = {"auto", "C", "F"}, THEMES = {"auto", "light", "dark"};
         /** Home Settings: language, temperature, theme, my photos, sounds, weather, city, quotes, then one row per coin. */
-        private static final int PHOTOS_ROW = 3, CITY_ROW = 6, COIN_ROWS = 8;
+        private static final int PHOTOS_ROW = 3, CITY_ROW = 6, AIR_ROW = 8, HOLIDAY_ROW = 9, DAILY_ROW = 10, TILT_ROW = 11,
+                COIN_ROWS = 12;
         /** Home Settings rows on screen at once (what fits above the hints at 1080p); a longer list scrolls. */
         private static final int SETTINGS_VISIBLE = 10;
 
@@ -789,6 +790,10 @@ public class SettingsActivity extends Activity {
             l.add(Ui.tr("Weather widget"));
             l.add(Ui.tr("City"));
             l.add(Ui.tr("Quotes widget"));
+            l.add(Ui.tr("Air quality"));
+            l.add(Ui.tr("Holiday of the day"));
+            l.add(Ui.tr("Picture of the day"));
+            l.add(Ui.tr("3D app tiles"));
             l.add("Bitcoin");
             l.add("Ethereum");
             l.add("Solana");
@@ -812,6 +817,10 @@ public class SettingsActivity extends Activity {
             v[5] = onOff(Prefs.weather());
             v[CITY_ROW] = !cityStatus.isEmpty() ? cityStatus : Prefs.city().isEmpty() ? "—" : Prefs.city();
             v[7] = onOff(Prefs.quotes());
+            v[AIR_ROW] = onOff(Prefs.air());
+            v[HOLIDAY_ROW] = onOff(Prefs.holiday());
+            v[DAILY_ROW] = onOff(Prefs.dailyPicture());
+            v[TILT_ROW] = onOff(Prefs.tilt());
             // No quotes widget, nowhere to show prices: the coins read as off (and stay locked) until it is back on.
             for (int i = COIN_ROWS; i < v.length; i++) v[i] = onOff(Prefs.quotes() && Prefs.coin(i - COIN_ROWS));
             return v;
@@ -905,6 +914,10 @@ public class SettingsActivity extends Activity {
                 case 5: Prefs.setWeather(!Prefs.weather()); break;
                 case CITY_ROW: return;
                 case 7: Prefs.setQuotes(!Prefs.quotes()); break;
+                case AIR_ROW: Prefs.setAir(!Prefs.air()); break;
+                case HOLIDAY_ROW: Prefs.setHoliday(!Prefs.holiday()); break;
+                case DAILY_ROW: Prefs.setDailyPicture(!Prefs.dailyPicture()); break;
+                case TILT_ROW: Prefs.setTilt(!Prefs.tilt()); break;
                 default:
                     if (!Prefs.quotes()) return;
                     Prefs.setCoin(row - COIN_ROWS, !Prefs.coin(row - COIN_ROWS));
